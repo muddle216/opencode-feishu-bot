@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  opencode-feishu-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: opencode-feishu-bot:latest
+    container_name: opencode-feishu-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - FEISHU_VERIFICATION_TOKEN=${FEISHU_VERIFICATION_TOKEN}
+      - FEISHU_ENCRYPT_KEY=${FEISHU_ENCRYPT_KEY}
+      - OPENCODE_API_URL=${OPENCODE_API_URL}
+      - OPENCODE_API_TOKEN=${OPENCODE_API_TOKEN}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  default:
+    name: opencode-network

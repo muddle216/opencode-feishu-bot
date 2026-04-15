@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 OpenCode 飞书机器人 - 预览界面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .phone-frame {
+            border: 20px solid #1a1a1a;
+            border-radius: 40px;
+            background: white;
+            max-width: 375px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .phone-header {
+            background: #f0f2f5;
+            padding: 16px;
+            border-bottom: 1px solid #e5e5e5;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .phone-messages {
+            height: 600px;
+            overflow-y: auto;
+            background: #fafafa;
+            padding: 16px;
+        }
+        
+        .message {
+            margin-bottom: 16px;
+            max-width: 70%;
+        }
+        
+        .message.received {
+            background: white;
+            color: #333;
+            border-radius: 18px 18px 18px 4px;
+            padding: 12px 16px;
+            align-self: flex-start;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message.sent {
+            background: #007aff;
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 16px;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .card-body {
+            padding: 16px;
+        }
+        
+        .card-footer {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: #007aff;
+            color: white;
+        }
+        
+        .btn-default {
+            background: #f0f2f5;
+            color: #333;
+        }
+        
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .tag-blue {
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+        
+        .tag-green {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        
+        .tag-yellow {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+        
+        .tag-red {
+            background: #fff1f0;
+            color: #ff4d4f;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-4">🤖 OpenCode 飞书机器人</h1>
+            <p class="text-xl text-white/80 mb-8">TUI 完全替代方案 - 纯飞书界面操作</p>
+            <div class="flex justify-center gap-4">
+                <div class="glass-card p-4 text-white">
+                    <div class="text-2xl font-bold">🚫</div>
+                    <div class="text-sm">无终端依赖</div>
+                </div>
+                <div class="glass-card p-4 text-white">
+                    <div class="text-2xl font-bold">🤖</div>
+                    <div class="text-sm">纯飞书界面</div>
+                </div>
+                <div class="glass-card p-4 text-white">
+                    <div class="text-2xl font-bold">🔄</div>
+                    <div class="text-sm">1:1功能映射</div>
+                </div>
+                <div class="glass-card p-4 text-white">
+                    <div class="text-2xl font-bold">⚡</div>
+                    <div class="text-sm">实时交互</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <!-- 手机预览 -->
+            <div class="order-2 lg:order-1">
+                <div class="phone-frame">
+                    <div class="phone-header flex items-center justify-between">
+                        <div>
+                            <div class="font-semibold">OpenCode开发群</div>
+                            <div class="text-xs text-gray-500">3人在线</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <i class="fa fa-search"></i>
+                            <i class="fa fa-ellipsis-v"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="phone-messages flex flex-col">
+                        <!-- 系统消息 -->
+                        <div class="message received">
+                            <div class="text-xs text-gray-500 mb-1">OpenCode机器人</div>
+                            <div class="card">
+                                <div class="card-header flex items-center gap-2">
+                                    <i class="fa fa-info-circle text-blue-500"></i>
+                                    <span class="font-semibold">🤖 OpenCode 机器人使用指南</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>📋 基础命令：</strong>
+                                        <div class="text-sm mt-1">
+                                            • /opencode help - 显示帮助<br>
+                                            • /opencode list - 查看会话列表<br>
+                                            • /opencode create [描述] - 创建会话<br>
+                                            • /opencode attach [ID] - 进入会话<br>
+                                            • /opencode status - 查看状态
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <strong>💡 使用说明：</strong>
+                                        <div class="text-sm mt-1">
+                                            1. 创建会话后自动进入交互模式<br>
+                                            2. 直接输入命令即可执行操作<br>
+                                            3. 使用 exit 退出当前会话
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer flex gap-2">
+                                    <button class="btn btn-primary flex-1">📋 查看会话列表</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户消息 -->
+                        <div class="message sent">
+                            <div>/opencode list</div>
+                        </div>
+                        
+                        <!-- 机器人回复 -->
+                        <div class="message received">
+                            <div class="text-xs text-gray-500 mb-1">OpenCode机器人</div>
+                            <div class="card">
+                                <div class="card-header flex items-center gap-2">
+                                    <i class="fa fa-list text-green-500"></i>
+                                    <span class="font-semibold">📋 会话列表</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-sm text-gray-600 mb-3">当前共有 <strong>2</strong> 个会话</div>
+                                    
+                                    <!-- 会话卡片1 -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="font-semibold mb-1">session_1704823456789</div>
+                                            <div class="text-sm text-gray-600 mb-2">项目开发测试</div>
+                                            <div class="flex justify-between text-xs mb-3">
+                                                <span class="tag tag-green">活跃</span>
+                                                <span class="text-gray-500">2024-01-10</span>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button class="btn btn-primary flex-1">进入会话</button>
+                                                <button class="btn btn-default flex-1">查看日志</button>
+                                                <button class="btn btn-danger">删除</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 会话卡片2 -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="font-semibold mb-1">session_1704823123456</div>
+                                            <div class="text-sm text-gray-600 mb-2">代码审查</div>
+                                            <div class="flex justify-between text-xs mb-3">
+                                                <span class="tag tag-gray">已结束</span>
+                                                <span class="text-gray-500">2024-01-09</span>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button class="btn btn-primary flex-1">重启会话</button>
+                                                <button class="btn btn-default flex-1">查看日志</button>
+                                                <button class="btn btn-danger">删除</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer flex gap-2">
+                                    <button class="btn btn-primary flex-1">➕ 创建新会话</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户消息 -->
+                        <div class="message sent">
+                            <div>/opencode create 新功能开发</div>
+                        </div>
+                        
+                        <!-- 机器人回复 -->
+                        <div class="message received">
+                            <div class="text-xs text-gray-500 mb-1">OpenCode机器人</div>
+                            <div class="card">
+                                <div class="card-header flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-500"></i>
+                                    <span class="font-semibold">✅ 会话创建成功</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="font-semibold mb-2">会话ID: session_1704823789012</div>
+                                    <div class="text-sm text-gray-600 mb-3">描述: 新功能开发</div>
+                                    <div class="bg-blue-50 p-3 rounded-lg mb-3">
+                                        <div class="font-semibold text-blue-700">已自动进入会话模式</div>
+                                        <div class="text-sm text-blue-600 mt-1">您现在可以直接在群聊中输入命令进行操作。</div>
+                                    </div>
+                                    <div>
+                                        <strong>提示:</strong>
+                                        <div class="text-sm mt-1">
+                                            • 输入 <code>help</code> 查看可用命令<br>
+                                            • 输入 <code>exit</code> 退出会话<br>
+                                            • 输入命令直接执行操作
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户命令 -->
+                        <div class="message sent">
+                            <div>list</div>
+                        </div>
+                        
+                        <!-- 命令执行结果 -->
+                        <div class="message received">
+                            <div class="text-xs text-gray-500 mb-1">OpenCode机器人</div>
+                            <div class="card">
+                                <div class="card-header flex items-center gap-2">
+                                    <i class="fa fa-terminal text-blue-500"></i>
+                                    <span class="font-semibold">💻 命令执行结果</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <span class="text-sm text-gray-600">会话ID: </span>
+                                        <span class="font-mono text-sm">session_1704823789012</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <span class="text-sm text-gray-600">执行命令: </span>
+                                        <code class="bg-gray-100 px-2 py-1 rounded">list</code>
+                                    </div>
+                                    <div class="bg-gray-50 p-3 rounded-lg font-mono text-sm">
+                                        <div>可用的OpenCode实例:</div>
+                                        <div>1. instance-001 (运行中)</div>
+                                        <div>2. instance-002 (已停止)</div>
+                                        <div>3. instance-003 (运行中)</div>
+                                    </div>
+                                </div>
+                                <div class="card-footer flex gap-2">
+                                    <button class="btn btn-default flex-1">📋 查看完整日志</button>
+                                    <button class="btn btn-danger flex-1">❌ 退出会话</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 border-t">
+                        <div class="flex items-center gap-2">
+                            <input type="text" placeholder="输入命令..." class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                <i class="fa fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 功能介绍 -->
+            <div class="order-1 lg:order-2">
+                <div class="glass-card p-8 text-white">
+                    <h2 class="text-3xl font-bold mb-6">📋 支持的TUI全功能</h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                                <i class="fa fa-sitemap"></i>
+                                会话管理
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>查看会话列表</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>创建新会话</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>进入/附着会话</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>退出会话</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>停止会话</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>删除会话</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                                <i class="fa fa-terminal"></i>
+                                命令执行
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>会话内发送指令</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>实时命令交互</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>命令结果展示</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>错误处理和提示</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3 flex items-center gap-2">
+                                <i class="fa fa-line-chart"></i>
+                                监控管理
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>查看实时日志</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>查看系统状态</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>资源占用监控</span>
+                                </div>
+                                <div class="bg-white/10 p-3 rounded-lg flex items-center gap-2">
+                                    <i class="fa fa-check-circle text-green-400"></i>
+                                    <span>会话历史记录</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold mb-4">🚀 快速开始</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">1</div>
+                                <span>添加机器人到飞书群聊</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">2</div>
+                                <span>发送 <code class="bg-white/20 px-2 py-1 rounded">/opencode help</code> 查看帮助</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">3</div>
+                                <span>使用卡片和按钮进行操作</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-12 text-white/60 text-sm">
+            <p>OpenCode 飞书机器人 - TUI 完全替代方案</p>
+            <p class="mt-1">© 2024 OpenCode. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
