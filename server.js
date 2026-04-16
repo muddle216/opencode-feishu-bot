@@ -381,6 +381,8 @@ async function executeSessionCommand(session, command, chatId) {
 - :logs - View session logs
 - :status - View session status
 - :history [n] - View last n messages (default 10)
+- :history user/q - Show only user requests
+- :history assistant/r - Show only assistant responses
 - :interrupt - Interrupt current operation
 - :compact - Compact session history
 - :share - Get share URL
@@ -439,45 +441,65 @@ async function executeSessionCommand(session, command, chatId) {
         result = 'Error: No active session';
       } else {
         try {
-          const msgCount = parseInt(command.split(' ')[1]) || 10;
-          const msgResp = await opencodeClient.session.messages({ 
+          const parts = command.split(' ');
+          const filterArg = parts[1]?.toLowerCase();
+          const msgCount = parseInt(parts[parts.length - 1]) || 10;
+          
+          const msgResp = await opencodeClient.session.messages({
             path: { id: session.externalId },
-            query: { limit: Math.min(msgCount, 50) }
+            query: { limit: Math.min(msgCount * 2, 100) }
           });
           logger.info(`Messages response: ${JSON.stringify(msgResp.data).substring(0, 2000)}`);
-          const messages = msgResp.data || [];
+          let messages = msgResp.data || [];
+          
+          // 根据 filter 过滤消息
+          if (filterArg === 'user' || filterArg === 'u' || filterArg === 'q' || filterArg === '请求') {
+            messages = messages.filter(m => m.info.role === 'user');
+          } else if (filterArg === 'assistant' || filterArg === 'a' || filterArg === 'r' || filterArg === '回复') {
+            messages = messages.filter(m => m.info.role === 'assistant');
+          }
+          
+          // 反转顺序，最新的在前
+          messages = messages.reverse();
+          
           if (messages.length === 0) {
             result = 'No messages in session';
           } else {
             const lines = [];
-            for (const msg of messages.reverse()) {
+            for (const msg of messages) {
               const info = msg.info || msg;
               const role = info.role === 'user' ? '👤' : '🤖';
               const time = info.time?.created ? new Date(info.time.created).toLocaleTimeString() : '';
               const agent = info.agent || info.mode || 'unknown';
-              const parts = msg.parts || [];
-              
+              const msgParts = msg.parts || [];
+
               // 提取text类型的内容
-              const textContent = parts
+              const textContent = msgParts
                 .filter(p => p.type === 'text' && p.text)
                 .map(p => p.text)
                 .join('\n')
-                .substring(0, 300);
-              
+                .substring(0, 500);
+
               if (textContent) {
                 lines.push(`${role} [${time}] ${agent}\n  ${textContent}`);
               } else {
-                // 如果没有text，显示reasoning的摘要
-                const reasoning = parts.find(p => p.type === 'reasoning');
+                const reasoning = msgParts.find(p => p.type === 'reasoning');
                 if (reasoning && reasoning.text) {
-                  const shortText = reasoning.text.substring(0, 150);
+                  const shortText = reasoning.text.substring(0, 200);
                   lines.push(`${role} [${time}] ${agent}\n  [:reasoning] ${shortText}...`);
                 } else {
                   lines.push(`${role} [${time}] ${agent}`);
                 }
               }
             }
-            result = `Last ${Math.min(msgCount, messages.length)} messages:\n${lines.join('\n\n')}`;
+
+            let title = `Last ${messages.length} messages:`;
+            if (filterArg === 'user' || filterArg === 'u' || filterArg === 'q' || filterArg === '请求') {
+              title = `Last ${messages.length} user requests:`;
+            } else if (filterArg === 'assistant' || filterArg === 'a' || filterArg === 'r' || filterArg === '回复') {
+              title = `Last ${messages.length} assistant responses:`;
+            }
+            result = `${title}\n${lines.join('\n\n')}`;
           }
         } catch (e) {
           result = `History failed: ${e.message}`;
