@@ -387,6 +387,7 @@ async function executeSessionCommand(session, command, chatId) {
 - :compact - Compact session history
 - :share - Get share URL
 - :agent.cycle - Cycle to next agent`;
+      await sendFeishuCommandResult(chatId, session.id, command, result);
     } else if (command === ':clear' || command === '：clear') {
       result = 'Screen cleared';
       await sendFeishuClearScreen(chatId, session.id);
@@ -394,6 +395,7 @@ async function executeSessionCommand(session, command, chatId) {
     } else if (command === ':logs' || command === '：logs') {
       const logs = session.logs.slice(-20).map(log => `${log.timestamp.toLocaleTimeString()}: ${log.content}`).join('\n');
       result = `Session logs:\n${logs}`;
+      await sendFeishuCommandResult(chatId, session.id, command, result);
     } else if (command === ':status' || command === '：status') {
       const displayId = session.externalId || session.id;
       result = `Session status:
@@ -402,6 +404,7 @@ async function executeSessionCommand(session, command, chatId) {
 - Last activity: ${session.lastActivity.toLocaleString()}
 - Status: ${session.status}
 - Commands: ${session.logs.filter(l => l.content.startsWith('>')).length}`;
+      await sendFeishuCommandResult(chatId, session.id, command, result);
     } else if (command === ':interrupt' || command === '：interrupt') {
       if (!session.externalId) {
         result = 'Error: No active session';
@@ -412,6 +415,7 @@ async function executeSessionCommand(session, command, chatId) {
         } catch (e) {
           result = `Interrupt failed: ${e.message}`;
         }
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else if (command === ':compact' || command === '：compact') {
       if (!session.externalId) {
@@ -423,6 +427,7 @@ async function executeSessionCommand(session, command, chatId) {
         } catch (e) {
           result = `Compact failed: ${e.message}`;
         }
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else if (command === ':share' || command === '：share') {
       if (!session.externalId) {
@@ -435,6 +440,7 @@ async function executeSessionCommand(session, command, chatId) {
         } catch (e) {
           result = `Share failed: ${e.message}`;
         }
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else if (command.startsWith(':history') || command.startsWith('：history') || command.startsWith(':msgs') || command.startsWith('：msgs')) {
       if (!session.externalId) {
@@ -504,6 +510,8 @@ async function executeSessionCommand(session, command, chatId) {
         } catch (e) {
           result = `History failed: ${e.message}`;
         }
+        logger.info(`:history command result built`, { resultLength: result?.length, resultPreview: result?.substring(0, 200) });
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else if (command === ':agent.cycle' || command === '：agent.cycle') {
       if (!session.externalId) {
@@ -518,6 +526,7 @@ async function executeSessionCommand(session, command, chatId) {
         } catch (e) {
           result = `Agent cycle failed: ${e.message}`;
         }
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else {
       if (!session.externalId) {
