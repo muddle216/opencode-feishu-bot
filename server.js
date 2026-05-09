@@ -1020,7 +1020,7 @@ async function sendFeishuSessionList(chatId, _userId) {
     parentSessions.sort((a, b) => {
       const timeA = a.time?.updated || a.time?.created || 0;
       const timeB = b.time?.updated || b.time?.created || 0;
-      return timeB - timeA;
+      return timeA - timeB;
     });
     const displaySessions = parentSessions.slice(0, 10);
     const elements = [];
@@ -1033,16 +1033,18 @@ async function sendFeishuSessionList(chatId, _userId) {
           ? new Date(session.time.updated).toLocaleString() 
           : 'Unknown';
         const title = session.title || session.slug || 'No title';
-        const displayId = session.id.length > 20 ? session.id.substring(0, 20) + '...' : session.id;
-        
-        elements.push(
+        const workdir = session.directory || '';
+
+        const item = [
+          { tag: 'div', text: { tag: 'plain_text', content: session.id } },
           { tag: 'div', text: { tag: 'lark_md', content: `**${title}**` } },
-          { tag: 'div', text: { tag: 'plain_text', content: `${displayId} · ${lastUpdate}` } },
+          workdir ? { tag: 'div', text: { tag: 'plain_text', content: `📁 ${workdir} · ${lastUpdate}` } } : { tag: 'div', text: { tag: 'plain_text', content: lastUpdate } },
           { tag: 'action', actions: [
             { tag: 'button', text: { tag: 'plain_text', content: 'Attach' }, type: 'primary', value: JSON.stringify({ type: 'attach_session', sessionId: session.id }) },
           ]},
           { tag: 'div', text: { tag: 'plain_text', content: '---' } }
-        );
+        ].filter(e => e);
+        elements.push(...item);
       }
     }
     elements.push({ tag: 'action', actions: [
