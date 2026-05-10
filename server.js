@@ -1143,14 +1143,32 @@ async function attachFeishuSession(chatId, userId, sessionId) {
       }
     });
     sessionManager.updateSessionStatus(session.id, 'active');
+
+    let lastAssistant = null;
+    try {
+      logger.info(`[Attach] Fetching messages for externalId: ${session.externalId}`);
+      const messagesData = await opencodeClient.session.messages({ path: { id: session.externalId } });
+      logger.info(`[Attach] messages() returned keys: ${Object.keys(messagesData)}, data length: ${messagesData.data?.length}`);
+
+      const messages = messagesData.data || [];
+      lastAssistant = messages.filter(m => m.info?.role === 'assistant').at(-1);
+    } catch (e) {
+      logger.error(`[Attach] get messages failed: ${e.message}`);
+    }
+
+    const model = lastAssistant?.info?.modelID || lastAssistant?.info?.model || '';
+    const agent = lastAssistant?.info?.agent || '';
+
     const card = {
       config: { wide_screen_mode: true },
       header: { title: { tag: 'plain_text', content: 'Session Attached' }, template: 'blue' },
       elements: [
         { tag: 'div', text: { tag: 'lark_md', content: `**Session ID:** ${session.id}` } },
         { tag: 'div', text: { tag: 'plain_text', content: session.description || 'No description' } },
+        agent ? { tag: 'div', text: { tag: 'plain_text', content: `Agent: ${agent}` } } : null,
+        model ? { tag: 'div', text: { tag: 'plain_text', content: `Model: ${model}` } } : null,
         { tag: 'div', text: { tag: 'lark_md', content: '**Session is now active. Send commands to interact.**' } },
-      ],
+      ].filter(e => e),
     };
     await sendFeishuCard(chatId, card);
   } catch (error) {
