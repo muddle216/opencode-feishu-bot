@@ -380,6 +380,7 @@ async function executeSessionCommand(session, command, chatId) {
 - :clear - Clear screen
 - :logs - View session logs
 - :status - View session status
+- :list/:q - List all user questions in order
 - :history [n] - View last n messages (default 10)
 - :history user/q - Show only user requests
 - :history assistant/r - Show only assistant responses
@@ -439,6 +440,38 @@ async function executeSessionCommand(session, command, chatId) {
           result = `Share URL: ${shareUrl}`;
         } catch (e) {
           result = `Share failed: ${e.message}`;
+        }
+        await sendFeishuCommandResult(chatId, session.id, command, result);
+      }
+    } else if (command.startsWith(':list') || command.startsWith('：list') || command.startsWith(':q') || command.startsWith('：q')) {
+      if (!session.externalId) {
+        result = 'Error: No active session';
+      } else {
+        try {
+          const msgResp = await opencodeClient.session.messages({
+            path: { id: session.externalId },
+            query: { limit: 500 }
+          });
+          const messages = (msgResp.data || []).filter(m => m.info?.role === 'user');
+          
+          if (messages.length === 0) {
+            result = 'No user requests in session';
+          } else {
+            const lines = [];
+            for (let i = 0; i < messages.length; i++) {
+              const msg = messages[i];
+              const time = msg.info?.time?.created ? new Date(msg.info.time.created).toLocaleString() : '';
+              const textContent = (msg.parts || [])
+                .filter(p => p.type === 'text' && p.text)
+                .map(p => p.text)
+                .join('\n')
+                .substring(0, 200);
+              lines.push(`[${i + 1}] ${time}\n  ${textContent}`);
+            }
+            result = `Questions (${messages.length}):\n\n${lines.join('\n\n')}`;
+          }
+        } catch (e) {
+          result = `:list failed: ${e.message}`;
         }
         await sendFeishuCommandResult(chatId, session.id, command, result);
       }
