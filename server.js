@@ -446,34 +446,57 @@ async function executeSessionCommand(session, command, chatId) {
     } else if (command.startsWith(':list') || command.startsWith('：list') || command.startsWith(':q') || command.startsWith('：q')) {
       if (!session.externalId) {
         result = 'Error: No active session';
+        await sendFeishuCommandResult(chatId, session.id, command, result);
       } else {
         try {
           const msgResp = await opencodeClient.session.messages({
             path: { id: session.externalId },
             query: { limit: 500 }
           });
-          const messages = (msgResp.data || []).filter(m => m.info?.role === 'user');
+          const allMessages = msgResp.data || [];
+          const userMessages = allMessages.filter(m => m.info?.role === 'user');
           
-          if (messages.length === 0) {
+          if (userMessages.length === 0) {
             result = 'No user requests in session';
+            await sendFeishuCommandResult(chatId, session.id, command, result);
           } else {
-            const lines = [];
-            for (let i = 0; i < messages.length; i++) {
-              const msg = messages[i];
+            const elements = [];
+            elements.push({ tag: 'div', text: { tag: 'lark_md', content: `**Questions (${userMessages.length})**` } });
+            
+            for (let i = 0; i < userMessages.length; i++) {
+              const msg = userMessages[i];
+              const msgId = msg.info?.id || '';
               const time = msg.info?.time?.created ? new Date(msg.info.time.created).toLocaleString() : '';
               const textContent = (msg.parts || [])
                 .filter(p => p.type === 'text' && p.text)
                 .map(p => p.text)
                 .join('\n')
                 .substring(0, 200);
-              lines.push(`[${i + 1}] ${time}\n  ${textContent}`);
+              const preview = textContent || '(empty)';
+              
+              const assistantMsg = allMessages.find(m => m.info?.parentID === msgId && m.info?.role === 'assistant');
+              
+              elements.push(
+                { tag: 'div', text: { tag: 'lark_md', content: `**[${i + 1}]** ${time}` } },
+                { tag: 'div', text: { tag: 'plain_text', content: preview } },
+                assistantMsg ? { tag: 'action', actions: [
+                  { tag: 'button', text: { tag: 'plain_text', content: 'View Response' }, type: 'primary', value: JSON.stringify({ type: 'view_response', msgId: msgId, sessionId: session.externalId }) },
+                ]} : { tag: 'div', text: { tag: 'plain_text', content: '(no response)' } },
+                { tag: 'div', text: { tag: 'plain_text', content: '---' } }
+              );
             }
-            result = `Questions (${messages.length}):\n\n${lines.join('\n\n')}`;
+            
+            const card = {
+              config: { wide_screen_mode: true },
+              header: { title: { tag: 'plain_text', content: 'Question List' }, template: 'green' },
+              elements,
+            };
+            await sendFeishuCard(chatId, card);
           }
         } catch (e) {
           result = `:list failed: ${e.message}`;
+          await sendFeishuCommandResult(chatId, session.id, command, result);
         }
-        await sendFeishuCommandResult(chatId, session.id, command, result);
       }
     } else if (command.startsWith(':history') || command.startsWith('：history') || command.startsWith(':msgs') || command.startsWith('：msgs')) {
       if (!session.externalId) {
@@ -829,6 +852,11 @@ async function handleFeishuAction(actionType, value, chatId, userId) {
     case 'list_sessions':
       await sendFeishuSessionList(chatId, userId);
       break;
+    case 'view_response': {
+      const { msgId, sessionId } = actionData;
+      await sendFeishuMessageResponse(chatId, sessionId, msgId);
+      break;
+    }
     case 'show_help':
       await sendFeishuHelp(chatId);
       break;
@@ -1297,6 +1325,65 @@ async function sendFeishuSessionEnded(chatId, sessionId) {
     ],
   };
   await sendFeishuCard(chatId, card);
+}
+
+async function sendFeishuMessageResponse(chatId, sessionId, msgId) {
+  try {
+    logger.info(`[view_response] sessionId=${sessionId}, msgId=${msgId}`);
+    const msgResp = await opencodeClient.session.messages({
+      path: { id: sessionId },
+      query: { limit: 500 }
+    });
+    const allMessages = msgResp.data || [];
+    logger.info(`[view_response] total messages: ${allMessages.length}`);
+
+    const userMsg = allMessages.find(m => m.info?.id === msgId && m.info?.role === 'user');
+    const assistantMsg = allMessages.find(m => m.info?.parentID === msgId && m.info?.role === 'assistant');
+    logger.info(`[view_response] userMsg found: ${!!userMsg}, assistantMsg found: ${!!assistantMsg}`);
+    logger.info(`[view_response] userMsg.id=${userMsg?.info?.id}, parentID=${assistantMsg?.info?.parentID}`);
+    
+    const elements = [];
+    if (userMsg) {
+      const userContent = (userMsg.parts || [])
+        .filter(p => p.type === 'text' && p.text)
+        .map(p => p.text)
+        .join('\n');
+      logger.info(`[view_response] userContent length: ${userContent.length}, parts types: ${(userMsg.parts || []).map(p => p.type).join(',')}`);
+      elements.push({ tag: 'div', text: { tag: 'lark_md', content: '**Question:**' } });
+      elements.push({ tag: 'div', text: { tag: 'plain_text', content: userContent || '(no text content)' } });
+      elements.push({ tag: 'div', text: { tag: 'plain_text', content: '---' } });
+    }
+    
+    if (assistantMsg) {
+      const textParts = assistantMsg.parts || [];
+      const textContent = textParts.filter(p => p.type === 'text' && p.text).map(p => p.text).join('\n');
+      const reasoningContent = textParts.find(p => p.type === 'reasoning')?.text || '';
+      
+      if (textContent) {
+        elements.push({ tag: 'div', text: { tag: 'lark_md', content: '**Response:**' } });
+        elements.push({ tag: 'div', text: { tag: 'plain_text', content: textContent } });
+      } else if (reasoningContent) {
+        elements.push({ tag: 'div', text: { tag: 'lark_md', content: '**Response (reasoning):**' } });
+        elements.push({ tag: 'div', text: { tag: 'plain_text', content: reasoningContent.substring(0, 500) } });
+      } else {
+        elements.push({ tag: 'div', text: { tag: 'lark_md', content: '**Response (tool calls):**' } });
+        const tools = textParts.filter(p => p.type === 'tool').map(p => p.tool).join(', ');
+        elements.push({ tag: 'div', text: { tag: 'plain_text', content: tools || 'No text output' } });
+      }
+    } else {
+      elements.push({ tag: 'div', text: { tag: 'plain_text', content: '(no response found)' } });
+    }
+    
+    const card = {
+      config: { wide_screen_mode: true },
+      header: { title: { tag: 'plain_text', content: 'Message Detail' }, template: 'blue' },
+      elements,
+    };
+    await sendFeishuCard(chatId, card);
+  } catch (e) {
+    logger.error(`view_response error: ${e.message}`);
+    await sendFeishuError(chatId, `Failed to get response: ${e.message}`);
+  }
 }
 
 async function sendFeishuSessionLogs(chatId, userId, sessionId) {
